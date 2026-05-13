@@ -1,197 +1,574 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectTrigger, SelectContent, SelectValue, SelectItem } from '@/components/ui/select';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+
+// Academic year utility functions
+const getCurrentAcademicYear = () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const month = now.getMonth(); // 0-11 (0 = January)
+  
+  // Academic year typically starts around August/September
+  // If month is before August, academic year is previous/current
+  // If month is August or after, academic year is current/next
+  if (month < 7) { // Before August
+    return `${currentYear - 1}/${currentYear}`;
+  } else { // August or later
+    return `${currentYear}/${currentYear + 1}`;
+  }
+};
+
+// Zod schema for form validation
+const coordinatorSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  role: z.string().min(2, 'Role must be at least 2 characters'),
+  institution: z.string().min(2, 'Institution must be at least 2 characters'),
+  order: z.number().min(0, 'Order must be 0 or greater'),
+  isActive: z.boolean(),
+});
+
+const necMemberSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  role: z.string().min(2, 'Role must be at least 2 characters'),
+  institution: z.string().min(2, 'Institution must be at least 2 characters'),
+  grade: z.string().optional(),
+  bio: z.string().optional(),
+  order: z.number().min(0, 'Order must be 0 or greater'),
+  isActive: z.boolean(),
+});
+
 export default function LeadershipAdmin() {
+  const { data: session } = useSession();
+  const [leaders, setLeaders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingLeader, setEditingLeader] = useState<any | null>(null);
+  const [isCoordinator, setIsCoordinator] = useState(false);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const form = useForm<any>({
+    resolver: zodResolver(isCoordinator ? coordinatorSchema : necMemberSchema),
+    defaultValues: {
+      name: '',
+      role: '',
+      institution: '', // Required for NEC members
+      grade: '', // Required for NEC members
+      bio: '', // Optional for both
+      order: 0,
+      isActive: true,
+    },
+  });
+
+  // Update form when switching between coordinator/nec member
+  useEffect(() => {
+    if (isCoordinator) {
+      form.reset({
+        name: '',
+        role: '',
+        institution: '',
+        order: 0,
+        isActive: true,
+      });
+    } else {
+      form.reset({
+        name: '',
+        role: '',
+        institution: '',
+        grade: '',
+        bio: '',
+        order: 0,
+        isActive: true,
+      });
+    }
+  }, [isCoordinator]);
+
+  useEffect(() => {
+    fetchLeaders();
+  }, []);
+
+  const fetchLeaders = async () => {
+    try {
+      const res = await fetch('/api/leadership');
+      if (res.ok) {
+        const data = await res.json();
+        setLeaders(data);
+      }
+    } catch (error) {
+      console.error('Error fetching leaders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (data: any) => {
+    setSubmitting(true);
+
+    const formDataToSend = new FormData();
+    formDataToSend.append('name', data.name);
+    formDataToSend.append('role', data.role);
+    
+    // Only include NEC member fields if they exist
+    if ('institution' in data && data.institution) {
+      formDataToSend.append('institution', data.institution);
+    }
+    // Add automatic academic year for NEC members only (coordinators handled by API)
+    if ('grade' in data) {
+      formDataToSend.append('academicYear', getCurrentAcademicYear());
+    }
+    if ('grade' in data && data.grade) {
+      formDataToSend.append('grade', data.grade);
+    }
+    if (data.bio) formDataToSend.append('bio', data.bio);
+    formDataToSend.append('order', data.order.toString());
+    formDataToSend.append('isActive', data.isActive.toString());
+    if (photoFile) {
+      formDataToSend.append('photo', photoFile);
+    }
+
+    if (editingLeader && editingLeader.id) {
+      formDataToSend.append('id', String(editingLeader.id));
+    }
+
+    try {
+      const url = editingLeader 
+        ? `/api/leadership/${editingLeader.id}`
+        : '/api/leadership';
+      
+      const method = editingLeader ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        body: formDataToSend,
+      });
+
+      if (res.ok) {
+        await fetchLeaders();
+        resetForm();
+        setShowForm(false);
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to save leader');
+      }
+    } catch (error) {
+      console.error('Error saving leader:', error);
+      alert('Failed to save leader');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEdit = (leader: any) => {
+    // Prefetch latest leader data before editing (ensure photo, latest fields)
+    (async () => {
+      try {
+        const res = await fetch(`/api/leadership/${leader.id}?id=${leader.id}`);
+        if (res.ok) {
+          const fresh = await res.json();
+          setEditingLeader(fresh);
+          const isLeaderCoordinator = fresh.role?.toLowerCase().includes('coordinator');
+          setIsCoordinator(isLeaderCoordinator);
+          if (isLeaderCoordinator) {
+            form.reset({
+              name: fresh.name,
+              role: fresh.role,
+              institution: fresh.institution,
+              order: fresh.order,
+              isActive: fresh.isActive,
+            });
+          } else {
+            form.reset({
+              name: fresh.name,
+              role: fresh.role,
+              institution: fresh.institution,
+              grade: fresh.grade || '',
+              bio: fresh.bio || '',
+              order: fresh.order,
+              isActive: fresh.isActive,
+            });
+          }
+          setShowForm(true);
+        } else {
+          // fallback to existing object
+          setEditingLeader(leader);
+          const isLeaderCoordinator = leader.role?.toLowerCase().includes('coordinator');
+          setIsCoordinator(isLeaderCoordinator);
+          form.reset({
+            name: leader.name,
+            role: leader.role,
+            institution: leader.institution,
+            grade: leader.grade || '',
+            bio: leader.bio || '',
+            order: leader.order,
+            isActive: leader.isActive,
+          });
+          setShowForm(true);
+        }
+      } catch (err) {
+        console.error('Failed to prefetch leader for edit', err);
+        setEditingLeader(leader);
+        const isLeaderCoordinator = leader.role?.toLowerCase().includes('coordinator');
+        setIsCoordinator(isLeaderCoordinator);
+        form.reset({
+          name: leader.name,
+          role: leader.role,
+          institution: leader.institution,
+          grade: leader.grade || '',
+          bio: leader.bio || '',
+          order: leader.order,
+          isActive: leader.isActive,
+        });
+        setShowForm(true);
+      }
+    })();
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this leader?')) return;
+
+    try {
+      const res = await fetch(`/api/leadership/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        await fetchLeaders();
+      } else {
+        const error = await res.json();
+        alert(error.error || 'Failed to delete leader');
+      }
+    } catch (error) {
+      console.error('Error deleting leader:', error);
+      alert('Failed to delete leader');
+    }
+  };
+
+  const resetForm = () => {
+    if (isCoordinator) {
+      form.reset({
+        name: '',
+        role: '',
+        institution: '',
+        order: 0,
+        isActive: true,
+      });
+    } else {
+      form.reset({
+        name: '',
+        role: '',
+        institution: '',
+        grade: '',
+        bio: '',
+        order: 0,
+        isActive: true,
+      });
+    }
+    setPhotoFile(null);
+    setEditingLeader(null);
+  };
+
+  if (loading) {
+    return <div className="admin-content">Loading leaders...</div>;
+  }
+
   return (
     <div className="admin-content">
-      {/* Section Header Editor */}
       <div className="admin-section-card">
         <div className="section-card-header">
           <div>
-            <h3>Section Header</h3>
-            <p className="subtitle-text">Edit the leadership section heading displayed on the homepage</p>
+            <h3>Leadership Management</h3>
+            <p className="subtitle-text">Manage National Executive Council members</p>
           </div>
-        </div>
-        <div className="header-editor">
-          <div className="form-row">
-            <div className="form-field-admin">
-              <label>Subtitle</label>
-              <input type="text" defaultValue="Guiding the Vision" />
-            </div>
-            <div className="form-field-admin">
-              <label>Title</label>
-              <input type="text" defaultValue="The 2026/2027 Leadership" />
-            </div>
-          </div>
-          <div className="form-row full">
-            <div className="form-field-admin">
-              <label>Description</label>
-              <textarea rows={2} defaultValue="NUBS–GHANA is led by the National Executive Council (NEC) under the guidance of a National Coordinator appointed by the Ghana Baptist Convention (GBC)."></textarea>
-            </div>
-          </div>
-          <div className="header-editor-actions">
-            <button className="btn-admin btn-admin-success btn-admin-sm">Save Changes</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Leaders Table */}
-      <div className="admin-section-card">
-        <div className="section-card-header">
-          <div>
-            <h3>Leaders</h3>
-            <p className="subtitle-text">8 entries</p>
-          </div>
-          <button className="btn-admin btn-admin-primary btn-admin-sm" data-open-modal="leader-modal">
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsCoordinator(false); // Default to NEC member
+              setShowForm(true);
+            }}
+          >
             <i className="ph ph-plus"></i> Add Leader
-          </button>
+          </Button>
+          <div className="flex items-center gap-2 ml-4">
+            <Label>Type:</Label>
+            <Select value={isCoordinator ? 'coordinator' : 'nec'} onValueChange={(value) => { const newType = value === 'coordinator'; setIsCoordinator(newType) }}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="coordinator">Coordinator</SelectItem>
+                <SelectItem value="nec">NEC Member</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Role</th>
-              <th>Institution</th>
-              <th>Type</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Rev. Ezekiel Razak Alhassan</span>
+
+        {showForm && (
+          <div className="p-6 border-b border-admin-border">
+            <Form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              <div className="mb-4">
+                <h3 className="text-lg font-semibold text-admin-text mb-2">
+                  {isCoordinator ? 'Coordinator Information' : 'NEC Member Information'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {isCoordinator 
+                    ? 'Add the National Coordinator information (no academic details needed)'
+                    : 'Add NEC Member information (academic year, institution, and grade required)'
+                  }
+                </p>
+              </div>
+
+              {/* Common fields for both types */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter leader's name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input placeholder={isCoordinator ? "National Youth/NUBS Coordinator" : "e.g., National Chairperson"} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Coordinator-only fields */}
+              {isCoordinator && (
+                  <FormField
+                    control={form.control}
+                    name="institution"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Institution <span className="text-red-500">*</span></FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g., National Union of Students"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+              )}
+
+              {/* NEC Member-only fields */}
+              {!isCoordinator && (
+                <>
+                  <FormField
+                    control={form.control}
+                    name="institution"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Institution <span className="text-red-500">*</span></FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., University of Cape Coast" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="grade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Grade</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Level 300" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="bio"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Bio</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            rows={4}
+                            placeholder="Brief biography or description"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </>
+              )}
+
+              {/* Common fields for both types */}
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="order"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Order <span className="text-red-500">*</span></FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="Display order (0 = first)"
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="space-y-2">
+                  <Label>Photo</Label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+                    className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                  />
+                  {photoFile && (
+                    <p className="text-sm text-gray-600">Selected: {photoFile.name}</p>
+                  )}
                 </div>
-              </td>
-              <td>National Youth/NUBS Coordinator</td>
-              <td>Ghana Baptist Convention (GBC)</td>
-              <td><span className="badge badge-primary">Coordinator</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center space-x-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                        />
+                      </FormControl>
+                      <FormLabel className="text-sm font-medium">Active</FormLabel>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex space-x-3">
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Saving...' : (editingLeader ? 'Update' : 'Create')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    resetForm();
+                    setShowForm(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </Form>
+          </div>
+        )}
+
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {leaders.map((leader) => (
+              <div key={leader.id} className="admin-card">
+                {leader.photo?.url && (
+                  <img
+                    src={leader.photo.url}
+                    alt={leader.name}
+                    className="w-full h-48 object-cover rounded-t-lg"
+                  />
+                )}
+                <div className="p-4">
+                  <h4 className="text-lg font-semibold mb-2">{leader.name}</h4>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {leader.role}
+                  </p>
+                  {leader.institution && (
+                    <p className="text-sm text-gray-500 mb-3">
+                      {leader.institution}
+                    </p>
+                  )}
+                  {leader.academicYear && (
+                    <p className="text-sm text-gray-500 mb-2">
+                      Academic Year: {leader.academicYear}
+                    </p>
+                  )}
+                  {leader.grade && (
+                    <p className="text-sm text-gray-500 mb-3">
+                      Grade: {leader.grade}
+                    </p>
+                  )}
+                  {leader.bio && (
+                    <p className="text-sm text-gray-700 mb-4 line-clamp-3">
+                      {leader.bio}
+                    </p>
+                  )}
+                  <div className="flex justify-between items-center">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      leader.isActive 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}>
+                      {leader.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEdit(leader)}
+                      >
+                        <i className="ph ph-pencil"></i>
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDelete(leader.id)}
+                      >
+                        <i className="ph ph-trash"></i>
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Mr. Stephen Mensah</span>
-                </div>
-              </td>
-              <td>National Chairperson</td>
-              <td>Level 400, BSc. Forensic Sciences — UCC</td>
-              <td><span className="badge badge-success">NEC</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Ms. Genfi Janet Ekuful</span>
-                </div>
-              </td>
-              <td>Vice Chairperson</td>
-              <td>Level 300, BSc. Biochemistry — UCC</td>
-              <td><span className="badge badge-success">NEC</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Ms. Esther Ansah</span>
-                </div>
-              </td>
-              <td>General Secretary</td>
-              <td>Level 300, BCom. PSCM — UCC</td>
-              <td><span className="badge badge-success">NEC</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Ms. Abigail Essilfie</span>
-                </div>
-              </td>
-              <td>National Financial Secretary</td>
-              <td>Level 200, BCom. HRM — UCC</td>
-              <td><span className="badge badge-success">NEC</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Mr. Ephraim Kpogli Kwabena</span>
-                </div>
-              </td>
-              <td>Deputy Fin. Sec / SE Sector</td>
-              <td>Level 200, BCom. PSCM — UCC</td>
-              <td><span className="badge badge-success">NEC</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Mr. Prince Nyarko</span>
-                </div>
-              </td>
-              <td>Organizing Sec / Middle Sector</td>
-              <td>Level 300, B.Ed Social Science — UCC</td>
-              <td><span className="badge badge-success">NEC</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <div className="table-name-cell">
-                  <div className="table-avatar"><i className="ph ph-user"></i></div>
-                  <span className="name">Mr. Ezekiel Mba Abugre</span>
-                </div>
-              </td>
-              <td>Dep. Org. Sec / Northern Sector</td>
-              <td>Level 200, BA. Geography — UCC</td>
-              <td><span className="badge badge-success">NEC</span></td>
-              <td>
-                <div className="table-actions">
-                  <button className="btn-admin btn-admin-edit btn-admin-sm" data-edit data-open-modal="leader-modal"><i className="ph ph-pencil"></i></button>
-                  <button className="btn-admin btn-admin-danger btn-admin-sm" data-delete><i className="ph ph-trash"></i></button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

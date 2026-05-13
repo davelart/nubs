@@ -1,7 +1,8 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -27,7 +28,13 @@ export default function Sidebar() {
         </Link>
       </nav>
       <div className="sidebar-footer">
-        <Link href="/admin/login"><i className="ph ph-sign-out"></i> Sign Out</Link>
+        <button
+          onClick={() => signOut({ callbackUrl: '/admin/login' })}
+          className="sidebar-nav-item"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%', textAlign: 'left' }}
+        >
+          <i className="ph ph-sign-out"></i> Sign Out
+        </button>
       </div>
     </aside>
   );
