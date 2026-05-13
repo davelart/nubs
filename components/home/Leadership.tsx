@@ -59,21 +59,6 @@ export default function Leadership() {
     els.forEach(el => el.classList.add('active'));
   }, [isLoading, Array.isArray(leaders) ? leaders.length : 0]);
 
-  // const debugBanner = process.env.NODE_ENV === 'development' ? (
-  //   <div style={{position: 'fixed', right: 12, top: 84, zIndex: 9999, padding: '8px 12px', background: error ? '#fecaca' : isLoading ? '#fef3c7' : '#d1fae5', color: '#000', borderRadius: 8, boxShadow: '0 6px 18px rgba(0,0,0,0.12)', fontSize: 12}}>
-      {/* <div style={{fontWeight: 700, marginBottom: 4}}>Leadership Debug</div>
-      <div>academicYear: <span style={{fontWeight:500}}>{academicYear}</span></div>
-      <div>loading: <span style={{fontWeight:500}}>{String(isLoading)}</span></div>
-      <div>leaders: <span style={{fontWeight:500}}>{Array.isArray(leaders) ? leaders.length : 0}</span></div> */}
-      {/* {leaders && leaders[0] ? (
-        <div style={{marginTop:6, maxWidth:280, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}} title={JSON.stringify(leaders[0])}>
-          <strong>first:</strong> {JSON.stringify({ id: leaders[0].id, name: leaders[0].name, role: leaders[0].role, academicYear: leaders[0].academicYear })}
-        </div>
-      ) : null}
-      {error ? <div style={{marginTop:6, color:'#7f1d1d'}}>error: {error instanceof Error ? error.message : 'unknown'}</div> : null}
-    </div>
-  ) : null; */}
-
   // Separate coordinator and NEC members
   const coordinator = leaders.find((leader: any) => leader.role.toLowerCase().includes('coordinator'));
   const necMembers = leaders.filter((leader: any) => !leader.role.toLowerCase().includes('coordinator'));
@@ -145,7 +130,6 @@ export default function Leadership() {
 
   return (
     <section id="leadership" className="leadership section bg-light pattern-bg">
-      {/* {debugBanner} */}
       <div className="container">
         <div className="section-title center reveal-up">
           <span className="subtitle">Guiding the Vision</span>
