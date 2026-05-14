@@ -3,6 +3,9 @@ import { Inter, Outfit } from 'next/font/google';
 import Script from 'next/script';
 import ClientScripts from '@/components/layout/ClientScripts';
 import Providers from '@/components/Providers';
+import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
+import { extractRouterConfig } from 'uploadthing/server';
+import { ourFileRouter } from '@/app/api/uploadthing/core';
 import './globals.css';
 
 const inter = Inter({
@@ -31,6 +34,8 @@ export default function RootLayout({
         <Script src="https://unpkg.com/@phosphor-icons/web" strategy="beforeInteractive" />
       </head>
       <body>
+        {/* Pre-hydrate UploadThing config to avoid loading flash on upload components */}
+        <NextSSRPlugin routerConfig={extractRouterConfig(ourFileRouter)} />
         <Providers>
           <ClientScripts />
           {children}

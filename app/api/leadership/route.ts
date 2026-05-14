@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { getDownloadUrl, uploadFile, uploadFileLocal } from '@/lib/storage';
+import { uploadFile, getDownloadUrl } from '@/lib/storage';
 
-export async function GET(request: NextRequest, { params }: any) {
+type Leader = Awaited<ReturnType<typeof prisma.leadership.findMany>>[number];
+
+export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url);
         const academicYear = searchParams.get('academicYear');
@@ -26,19 +28,17 @@ export async function GET(request: NextRequest, { params }: any) {
             orderBy: { order: 'asc' },
         });
 
-        // Resolve accessible URLs for photo keys (signed or public)
-        const leadersWithUrls = await Promise.all(leaders.map(async (l) => {
-            if (l.photo && l.photo.key && !l.photo.url?.startsWith('/')) {
-                try {
-                    const resolved = await getDownloadUrl(l.photo.key);
-                    return { ...l, photo: { ...l.photo, url: resolved } };
-                } catch (err) {
-                    console.error('Error resolving media url for leader', l.id, err);
-                    return l;
-                }
+        // Resolve accessible URLs for photo keys.
+        // UploadThing URLs are permanent; legacy local paths pass through as-is.
+        const leadersWithUrls = leaders.map((l: Leader) => {
+            if (l.photo?.key) {
+                return {
+                    ...l,
+                    photo: { ...l.photo, url: getDownloadUrl(l.photo.key) },
+                };
             }
             return l;
-        }));
+        });
 
         return NextResponse.json(leadersWithUrls, { status: 200 });
     } catch (error) {
@@ -47,9 +47,9 @@ export async function GET(request: NextRequest, { params }: any) {
     }
 }
 
-export async function POST(request: NextRequest, { params }: any) {
+export async function POST(request: NextRequest) {
     const token = await auth();
-    
+
     try {
         if (!token?.user || (token.user as any).role !== 'admin') {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -61,11 +61,10 @@ export async function POST(request: NextRequest, { params }: any) {
         const institution = formData.get('institution') as string;
         const grade = formData.get('grade') as string;
         const bio = formData.get('bio') as string;
-        const photo = formData.get('photo') as File;
+        const photo = formData.get('photo') as File | null;
         const order = parseInt(formData.get('order') as string) || 0;
         const academicYear = formData.get('academicYear') as string;
 
-        // Validate required fields based on type
         if (!name || !role || !institution) {
             return NextResponse.json(
                 { error: 'Name, role, and institution are required' },
@@ -73,40 +72,24 @@ export async function POST(request: NextRequest, { params }: any) {
             );
         }
 
-        // Auto-assign academic year for coordinators if not provided
+        // Auto-assign academic year if not provided
         let assignedAcademicYear = academicYear;
         if (!assignedAcademicYear) {
             const now = new Date();
             const currentYear = now.getFullYear();
             const month = now.getMonth();
-            if (month < 7) {
-                assignedAcademicYear = `${currentYear - 1}/${currentYear}`;
-            } else {
-                assignedAcademicYear = `${currentYear}/${currentYear + 1}`;
-            }
+            assignedAcademicYear =
+                month < 7
+                    ? `${currentYear - 1}/${currentYear}`
+                    : `${currentYear}/${currentYear + 1}`;
         }
 
         let photoId: number | undefined;
 
         if (photo && photo.size > 0) {
             const buffer = Buffer.from(await photo.arrayBuffer());
-            const key = `leadership/${Date.now()}-${photo.name}`;
-            let url: string;
-            
-            // Default to local storage in dev unless Tigris is explicitly enabled
-            const useTigris = process.env.USE_TIGRIS === 'true' && process.env.NODE_ENV === 'production';
-            
-            if (useTigris) {
-                try {
-                    url = await uploadFile(key, buffer, photo.type);
-                } catch (uploadErr) {
-                    console.error('Tigris upload failed:', uploadErr);
-                    throw uploadErr;
-                }
-            } else {
-                // Use local storage in development
-                url = await uploadFileLocal(key, buffer, photo.type);
-            }
+            const { url, key } = await uploadFile(photo.name, buffer, photo.type);
+
             const media = await prisma.media.create({
                 data: {
                     filename: photo.name,
@@ -141,14 +124,9 @@ export async function POST(request: NextRequest, { params }: any) {
             },
         });
 
-        // Resolve photo URL if needed (for consistency with GET endpoint)
-        if (leader.photo && leader.photo.key && !leader.photo.url?.startsWith('/')) {
-            try {
-                const resolved = await getDownloadUrl(leader.photo.key);
-                leader.photo.url = resolved;
-            } catch (err) {
-                console.error('Error resolving media url for leader', leader.id, err);
-            }
+        // Resolve URL for the newly created photo
+        if (leader.photo?.key) {
+            leader.photo.url = getDownloadUrl(leader.photo.key);
         }
 
         return NextResponse.json(leader, { status: 201 });
