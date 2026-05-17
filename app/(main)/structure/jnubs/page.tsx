@@ -22,7 +22,7 @@ export default function JNUBS() {
         <p>Through JNUBS, high school students are discipled, trained in leadership, and prepared for active participation in their future Local Unions on university campuses.</p>
         <div className="detail-info-grid">
           <div className="detail-info-card">
-            <h4><i className="ph ph-student"></i> Target Group</h4>
+            <h4><i className="ph ph-student"></i>Target Group</h4>
             <p>Junior High School and Senior High School students across Ghana who are members of or affiliated with Baptist churches.</p>
           </div>
           <div className="detail-info-card">
