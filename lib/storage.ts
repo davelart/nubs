@@ -36,7 +36,7 @@ export async function uploadFile(
   }
 
   return {
-    url: response.data.ufsUrl,
+    url: response.data.url, // utapi returns .url, not .ufsUrl
     key: response.data.key,
   };
 }

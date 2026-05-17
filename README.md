@@ -27,10 +27,7 @@ Required environment variables:
 - `AUTH_SECRET` - Secret for NextAuth
 - `NEXTAUTH_URL` - Your application URL
 - `NEXTAUTH_SECRET` - Secret for NextAuth sessions
-- `AWS_ACCESS_KEY_ID` - AWS access key for S3
-- `AWS_SECRET_ACCESS_KEY` - AWS secret key for S3
-- `AWS_REGION` - AWS region for S3 bucket
-- `AWS_S3_BUCKET_NAME` - Name of your S3 bucket
+- `UPLOADTHING_TOKEN` - API token from your UploadThing dashboard (https://uploadthing.com/dashboard)
 
 ## Database Setup
 
