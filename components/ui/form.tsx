@@ -29,7 +29,7 @@ const FormField = ({
     <Controller
       name={name}
       control={control}
-      render={render}
+      render={render as any}
     />
   )
 }
