@@ -11,7 +11,7 @@ export const ourFileRouter = {
    * Only authenticated admins may upload.
    * Replaces the existing constitution record on completion.
    */
-  constitution: f({ pdf: { maxFileSize: '10MB', maxFileCount: 1 }, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { maxFileSize: '10MB', maxFileCount: 1 } })
+  constitution: f({ pdf: { maxFileSize: '8MB', maxFileCount: 1 }, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { maxFileSize: '8MB', maxFileCount: 1 } })
     .middleware(async () => {
       const session = await auth();
       if (!session?.user || (session.user as any).role !== 'admin') {
