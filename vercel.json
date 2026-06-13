@@ -2,11 +2,5 @@
   "buildCommand": "pnpm build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "pnpm install",
-  "env": {
-    "DATABASE_URL": "@database-url",
-    "AUTH_SECRET": "@auth-secret",
-    "AUTH_URL": "@auth-url",
-    "UPLOADTHING_TOKEN": "@uploadthing-token"
-  }
+  "installCommand": "pnpm install"
 }
