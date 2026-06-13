@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { uploadFile, getDownloadUrl } from '@/lib/storage';
 
-type Leader = Awaited<ReturnType<typeof prisma.leadership.findMany>>[number];
+type Leader = Prisma.LeadershipGetPayload<{
+    include: { photo: { select: { id: true; key: true; url: true; filename: true } } };
+}>;
 
 export async function GET(request: NextRequest) {
     try {
