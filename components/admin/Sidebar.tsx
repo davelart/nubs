@@ -20,12 +20,12 @@ export default function Sidebar() {
         <Link href="/admin/leadership" className={`sidebar-nav-item ${pathname === '/admin/leadership' ? 'active' : ''}`}>
           <i className="ph ph-users"></i> Leadership
         </Link>
-        <Link href="/admin/structure" className={`sidebar-nav-item ${pathname === '/admin/structure' ? 'active' : ''}`}>
+        {/* <Link href="/admin/structure" className={`sidebar-nav-item ${pathname === '/admin/structure' ? 'active' : ''}`}>
           <i className="ph ph-tree-structure"></i> Structure
         </Link>
         <Link href="/admin/programs" className={`sidebar-nav-item ${pathname === '/admin/programs' ? 'active' : ''}`}>
           <i className="ph ph-calendar-star"></i> Programs
-        </Link>
+        </Link> */}
         <Link href="/admin/constitution" className={`sidebar-nav-item ${pathname === '/admin/constitution' ? 'active' : ''}`}>
           <i className="ph ph-file-text"></i> Constitution
         </Link>

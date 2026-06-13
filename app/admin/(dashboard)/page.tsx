@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function Dashboard() {
   return (
     <div className="admin-content">
-      {/* Stats */}
+      {/* Stats — commented out (hardcoded/non-functional)
       <div className="stats-grid">
         <div className="stat-card">
           <div className="stat-card-header">
@@ -34,6 +34,7 @@ export default function Dashboard() {
           <div className="stat-label">Total Pages</div>
         </div>
       </div>
+      */}
 
       {/* Quick Actions */}
       <div className="admin-section-card">
@@ -46,24 +47,24 @@ export default function Dashboard() {
         <div style={{ padding: "1.5rem" }}>
           <div className="quick-actions">
             <Link href="/admin/leadership" className="quick-action-card">
-              <div className="quick-action-icon"><i className="ph ph-user-plus"></i></div>
+              <div className="quick-action-icon"><i className="ph ph-users"></i></div>
               <div>
-                <h4>Manage Leaders</h4>
+                <h4>Leadership</h4>
                 <p>Add or edit leadership info</p>
               </div>
             </Link>
-            <Link href="/admin/structure" className="quick-action-card">
-              <div className="quick-action-icon"><i className="ph ph-plus-circle"></i></div>
+            <Link href="/admin/constitution" className="quick-action-card">
+              <div className="quick-action-icon"><i className="ph ph-file-text"></i></div>
               <div>
-                <h4>Structure Cards</h4>
-                <p>Add or modify structure cards</p>
+                <h4>Constitution</h4>
+                <p>Upload the constitution document</p>
               </div>
             </Link>
-            <Link href="/admin/programs" className="quick-action-card">
-              <div className="quick-action-icon"><i className="ph ph-calendar-plus"></i></div>
+            <Link href="/admin/contact" className="quick-action-card">
+              <div className="quick-action-icon"><i className="ph ph-address-book"></i></div>
               <div>
-                <h4>Programs</h4>
-                <p>Manage program activities</p>
+                <h4>Contact Info</h4>
+                <p>Update address and phone</p>
               </div>
             </Link>
             <Link href="/" className="quick-action-card" target="_blank">

@@ -19,17 +19,17 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { address, phone, email } = await request.json();
+        const { address, phone } = await request.json();
 
-        if (!address || !phone || !email) {
-            return NextResponse.json({ error: 'Address, phone and email are required' }, { status: 400 });
+        if (!address || !phone) {
+            return NextResponse.json({ error: 'Address and phone are required' }, { status: 400 });
         }
 
         const existing = await prisma.contactInfo.findFirst();
 
         const info = existing
-            ? await prisma.contactInfo.update({ where: { id: existing.id }, data: { address, phone, email } })
-            : await prisma.contactInfo.create({ data: { address, phone, email } });
+            ? await prisma.contactInfo.update({ where: { id: existing.id }, data: { address, phone } })
+            : await prisma.contactInfo.create({ data: { address, phone, email: 'nationalunionofbaptiststudents@gmail.com' } });
 
         return NextResponse.json(info);
     } catch (error) {
