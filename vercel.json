@@ -6,8 +6,7 @@
   "env": {
     "DATABASE_URL": "@database-url",
     "AUTH_SECRET": "@auth-secret",
-    "NEXTAUTH_URL": "@nextauth-url",
-    "NEXTAUTH_SECRET": "@nextauth-secret",
+    "AUTH_URL": "@auth-url",
     "UPLOADTHING_TOKEN": "@uploadthing-token"
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -57,6 +58,7 @@ export default function LeadershipAdmin() {
   const [isCoordinator, setIsCoordinator] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const editAbortRef = useRef<AbortController | null>(null);
 
   const form = useForm<any>({
     resolver: zodResolver(isCoordinator ? coordinatorSchema : necMemberSchema),
@@ -96,6 +98,7 @@ export default function LeadershipAdmin() {
 
   useEffect(() => {
     fetchLeaders();
+    return () => { editAbortRef.current?.abort(); };
   }, []);
 
   const fetchLeaders = async () => {
@@ -156,81 +159,50 @@ export default function LeadershipAdmin() {
         await fetchLeaders();
         resetForm();
         setShowForm(false);
+        toast.success(editingLeader ? 'Leader updated successfully' : 'Leader created successfully');
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to save leader');
+        toast.error(error.error || 'Failed to save leader');
       }
     } catch (error) {
       console.error('Error saving leader:', error);
-      alert('Failed to save leader');
+      toast.error('Failed to save leader');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleEdit = (leader: any) => {
-    // Prefetch latest leader data before editing (ensure photo, latest fields)
-    (async () => {
-      try {
-        const res = await fetch(`/api/leadership/${leader.id}?id=${leader.id}`);
-        if (res.ok) {
-          const fresh = await res.json();
-          setEditingLeader(fresh);
-          const isLeaderCoordinator = fresh.role?.toLowerCase().includes('coordinator');
-          setIsCoordinator(isLeaderCoordinator);
-          if (isLeaderCoordinator) {
-            form.reset({
-              name: fresh.name,
-              role: fresh.role,
-              institution: fresh.institution,
-              order: fresh.order,
-              isActive: fresh.isActive,
-            });
-          } else {
-            form.reset({
-              name: fresh.name,
-              role: fresh.role,
-              institution: fresh.institution,
-              grade: fresh.grade || '',
-              bio: fresh.bio || '',
-              order: fresh.order,
-              isActive: fresh.isActive,
-            });
-          }
-          setShowForm(true);
-        } else {
-          // fallback to existing object
-          setEditingLeader(leader);
-          const isLeaderCoordinator = leader.role?.toLowerCase().includes('coordinator');
-          setIsCoordinator(isLeaderCoordinator);
-          form.reset({
-            name: leader.name,
-            role: leader.role,
-            institution: leader.institution,
-            grade: leader.grade || '',
-            bio: leader.bio || '',
-            order: leader.order,
-            isActive: leader.isActive,
-          });
-          setShowForm(true);
-        }
-      } catch (err) {
-        console.error('Failed to prefetch leader for edit', err);
-        setEditingLeader(leader);
-        const isLeaderCoordinator = leader.role?.toLowerCase().includes('coordinator');
-        setIsCoordinator(isLeaderCoordinator);
-        form.reset({
-          name: leader.name,
-          role: leader.role,
-          institution: leader.institution,
-          grade: leader.grade || '',
-          bio: leader.bio || '',
-          order: leader.order,
-          isActive: leader.isActive,
-        });
-        setShowForm(true);
+  const handleEdit = async (leader: any) => {
+    // Cancel any in-flight prefetch from a previous edit click
+    editAbortRef.current?.abort();
+    const controller = new AbortController();
+    editAbortRef.current = controller;
+
+    const applyLeader = (data: any) => {
+      if (controller.signal.aborted) return;
+      const isLeaderCoordinator = data.role?.toLowerCase().includes('coordinator');
+      setEditingLeader(data);
+      setIsCoordinator(isLeaderCoordinator);
+      form.reset(
+        isLeaderCoordinator
+          ? { name: data.name, role: data.role, institution: data.institution, order: data.order, isActive: data.isActive }
+          : { name: data.name, role: data.role, institution: data.institution, grade: data.grade || '', bio: data.bio || '', order: data.order, isActive: data.isActive }
+      );
+      setShowForm(true);
+    };
+
+    try {
+      const res = await fetch(`/api/leadership/${leader.id}?id=${leader.id}`, { signal: controller.signal });
+      if (res.ok) {
+        applyLeader(await res.json());
+      } else {
+        applyLeader(leader);
       }
-    })();
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return;
+      console.error('Failed to prefetch leader for edit', err);
+      applyLeader(leader);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -243,13 +215,14 @@ export default function LeadershipAdmin() {
 
       if (res.ok) {
         await fetchLeaders();
+        toast.success('Leader deleted');
       } else {
         const error = await res.json();
-        alert(error.error || 'Failed to delete leader');
+        toast.error(error.error || 'Failed to delete leader');
       }
     } catch (error) {
       console.error('Error deleting leader:', error);
-      alert('Failed to delete leader');
+      toast.error('Failed to delete leader');
     }
   };
 

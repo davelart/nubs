@@ -43,12 +43,6 @@ export default function Leadership() {
     },
   });
 
-  // Debug: log query state in browser console
-  if (typeof window !== 'undefined') {
-    // eslint-disable-next-line no-console
-    console.debug('Leadership query', { academicYear, isLoading, error, leaders });
-  }
-
   // Ensure reveal animations trigger for async-loaded elements
   useEffect(() => {
     if (typeof window === 'undefined') return;

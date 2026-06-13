@@ -6,6 +6,7 @@ import Providers from '@/components/Providers';
 import { NextSSRPlugin } from '@uploadthing/react/next-ssr-plugin';
 import { extractRouterConfig } from 'uploadthing/server';
 import { ourFileRouter } from '@/app/api/uploadthing/core';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const inter = Inter({
@@ -39,6 +40,7 @@ export default function RootLayout({
         <Providers>
           <ClientScripts />
           {children}
+          <Toaster richColors position="bottom-right" />
         </Providers>
       </body>
     </html>

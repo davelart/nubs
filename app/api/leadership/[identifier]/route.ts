@@ -60,7 +60,10 @@ export async function PUT(
         const formData = await request.formData();
         const name = formData.get('name') as string;
         const role = formData.get('role') as string;
-        const bio = formData.get('bio') as string;
+        const institution = formData.get('institution') as string | null;
+        const grade = formData.get('grade') as string | null;
+        const bio = formData.get('bio') as string | null;
+        const academicYear = formData.get('academicYear') as string | null;
         const photo = formData.get('photo') as File | null;
         const order = parseInt(formData.get('order') as string) || 0;
         const isActive = formData.get('isActive') === 'true';
@@ -94,7 +97,16 @@ export async function PUT(
         let photoId: number | undefined = existingLeader.photoId ?? undefined;
 
         if (photo && photo.size > 0) {
-            // Delete the existing photo from storage (UploadThing or local) before uploading the new one
+            // Upload new photo FIRST — only clean up the old one if upload succeeds
+            const buffer = Buffer.from(await photo.arrayBuffer());
+            const { url, key } = await uploadFile(photo.name, buffer, photo.type);
+
+            const media = await prisma.media.create({
+                data: { filename: photo.name, url, key, mimeType: photo.type },
+            });
+            photoId = media.id;
+
+            // Now safe to remove the old photo
             if (existingLeader.photoId) {
                 const existingMedia = await prisma.media.findUnique({
                     where: { id: existingLeader.photoId },
@@ -106,17 +118,12 @@ export async function PUT(
                         console.error('Failed to delete old media file', err);
                     }
                 }
-                await prisma.media.delete({ where: { id: existingLeader.photoId } });
-                photoId = undefined;
+                try {
+                    await prisma.media.delete({ where: { id: existingLeader.photoId } });
+                } catch (err) {
+                    console.error('Failed to delete old media record', err);
+                }
             }
-
-            const buffer = Buffer.from(await photo.arrayBuffer());
-            const { url, key } = await uploadFile(photo.name, buffer, photo.type);
-
-            const media = await prisma.media.create({
-                data: { filename: photo.name, url, key, mimeType: photo.type },
-            });
-            photoId = media.id;
         }
 
         const leader = await prisma.leadership.update({
@@ -124,7 +131,10 @@ export async function PUT(
             data: {
                 name,
                 role: role || undefined,
-                bio,
+                ...(institution !== null && institution !== undefined && { institution }),
+                ...(grade !== null && { grade: grade || null }),
+                ...(academicYear && { academicYear }),
+                bio: bio || null,
                 photoId,
                 order,
                 isActive,

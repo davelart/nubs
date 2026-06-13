@@ -1149,8 +1149,8 @@ img {
   @apply text-sm text-white/50 mb-8;
 }
 
-.donation-amount-group label,
-.payment-method-group label {
+.donation-amount-group > label,
+.payment-method-group > label {
   @apply block text-xs font-bold text-white/50 mb-3 uppercase tracking-[0.0625em];
 }
 
@@ -1196,19 +1196,35 @@ img {
 }
 
 .radio-methods {
-  @apply flex gap-4 mb-6 flex-wrap;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .radio-label {
-  @apply flex items-center gap-2 cursor-pointer text-sm text-white/75 font-medium;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 500;
 }
 
 .radio-label input[type="radio"] {
-  @apply hidden;
+  display: none;
 }
 
 .radio-custom {
-  @apply w-[18px] h-[18px] border-2 border-white/25 rounded-full inline-block relative;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 50%;
+  display: block;
+  position: relative;
 }
 
 .radio-label input:checked+.radio-custom {
@@ -1222,7 +1238,13 @@ img {
 }
 
 .payment-details-box {
-  @apply bg-white/10 px-5 rounded-[20px] text-sm text-white/85 mb-6 border border-white/10;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 16px 20px;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 1.5rem;
 }
 
 .payment-details-box strong {
@@ -1673,7 +1695,7 @@ a.prog-detail-card {
 }
 
 .detail-info-card {
-  @apply bg-[#f8fafc] border border-[#e2e8f0] rounded-[20px] px-7 transition-all duration-300;
+  @apply bg-[#f8fafc] border border-[#e2e8f0] rounded-[20px] px-6 py-4 transition-all duration-300;
 }
 
 .detail-info-card:hover {

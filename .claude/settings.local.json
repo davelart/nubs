@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la /c/Users/FRED/work/nubs/*.css /c/Users/FRED/work/nubs/app/*.css)",
+      "Bash(xargs grep:*)"
+    ]
+  }
+}

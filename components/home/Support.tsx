@@ -33,12 +33,12 @@ export default function Support() {
                 <label className="radio-label">
                   <input type="radio" name="payment" value="momo" defaultChecked />
                   <span className="radio-custom"></span>
-                  Mobile Money
+                  <span>Mobile Money</span>
                 </label>
                 <label className="radio-label">
                   <input type="radio" name="payment" value="bank" />
                   <span className="radio-custom"></span>
-                  Bank Transfer
+                  <span>Bank Transfer</span>
                 </label>
               </div>
             </div>
