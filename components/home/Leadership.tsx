@@ -8,7 +8,8 @@ export default function Leadership() {
   const now = new Date();
   const currentYear = now.getFullYear();
   const month = now.getMonth();
-  const academicYear = month < 7
+  // Academic year switches in May (month 4) when new leadership takes over
+  const academicYear = month < 4
     ? `${currentYear - 1}/${currentYear}`
     : `${currentYear}/${currentYear + 1}`;
 
@@ -127,7 +128,7 @@ export default function Leadership() {
       <div className="container">
         <div className="section-title center reveal-up">
           <span className="subtitle">Guiding the Vision</span>
-          <h2>The {leaders[0]?.academicYear || academicYear} Leadership</h2>
+          <h2>The {academicYear} Leadership</h2>
           <p className="section-desc">NUBS–GHANA is led by the National Executive Council (NEC) under the guidance of a National Coordinator appointed by the Ghana Baptist Convention (GBC).</p>
         </div>
 

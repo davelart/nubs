@@ -20,12 +20,10 @@ const getCurrentAcademicYear = () => {
   const currentYear = now.getFullYear();
   const month = now.getMonth(); // 0-11 (0 = January)
   
-  // Academic year typically starts around August/September
-  // If month is before August, academic year is previous/current
-  // If month is August or after, academic year is current/next
-  if (month < 7) { // Before August
+  // Academic year switches in May when new leadership takes over
+  if (month < 4) { // Before May
     return `${currentYear - 1}/${currentYear}`;
-  } else { // August or later
+  } else { // May or later
     return `${currentYear}/${currentYear + 1}`;
   }
 };

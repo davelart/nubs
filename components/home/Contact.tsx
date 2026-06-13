@@ -1,4 +1,22 @@
-export default function Contact() {
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+
+const FALLBACK = {
+  address: 'University of Cape Coast, Ghana',
+  phone: '+233 (0) 24 210 9888',
+  email: 'nationalunionofbaptiststudents@gmail.com',
+};
+
+export default function Contact() { const { data: info } = useQuery({ queryKey: ['contact-info'], queryFn: async () => {
+      const res = await fetch('/api/contact-info');
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
+  const contact = info ?? FALLBACK;
+
   return (
     <section id="contact" className="contact section">
       <div className="container section-grid">
@@ -6,15 +24,15 @@ export default function Contact() {
           <span className="subtitle">CONTACT US</span>
           <h2>Have Questions? <span className="text-accent">Get in touch!</span></h2>
           <p>Contact our team to discuss placements, partnerships, or program details. We typically respond within 1–2 business days.</p>
-          
+
           <ul className="contact-details-list">
             <li>
               <div className="contact-icon"><i className="ph ph-map-pin"></i></div>
-              <span>University of Cape Coast, Ghana</span>
+              <span>{contact.address}</span>
             </li>
             <li>
               <div className="contact-icon"><i className="ph ph-phone"></i></div>
-              <span>+233 (0) 24 210 9888</span>
+              <span>{contact.phone}</span>
             </li>
             <li>
               <div className="contact-icon"><i className="ph ph-envelope"></i></div>
@@ -22,7 +40,7 @@ export default function Contact() {
             </li>
           </ul>
         </div>
-        
+
         <div className="contact-form-wrap reveal-right">
           <form className="interaction-form">
             <div className="form-row">
@@ -49,7 +67,7 @@ export default function Contact() {
               <i className="ph ph-pencil-simple icon-top"></i>
               <textarea placeholder="How can we help you? Feel free to get in touch!" rows={4} required></textarea>
             </div>
-            
+
             <div className="form-footer">
               <label className="checkbox-label">
                 <input type="checkbox" required />

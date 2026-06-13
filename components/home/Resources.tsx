@@ -1,4 +1,17 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+
 export default function Resources() {
+  const { data: constitution } = useQuery({
+    queryKey: ['constitution'],
+    queryFn: async () => {
+      const res = await fetch('/api/constitution');
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
   return (
     <section id="resources" className="resources section bg-light">
       <div className="container text-center reveal-up">
@@ -10,10 +23,16 @@ export default function Resources() {
            <div className="resource-card-premium reveal-up">
               <div className="resource-icon-wrap"><i className="ph ph-article"></i></div>
               <h3>Constitution</h3>
-              <p>The guiding document outlining the operational standards and laws of the National Union of Baptist Students (2012 Edition).</p>
-              <a href="https://68fc97e13a28f.site123.me/resources-1/the-nubs-ghana-constitution" className="btn-download" target="_blank" rel="noopener noreferrer">
-                Download PDF <i className="ph ph-download-simple"></i>
-              </a>
+              <p>The guiding document outlining the operational standards and laws of the National Union of Baptist Students.</p>
+              {constitution?.url ? (
+                <a href={constitution.url} className="btn-download" target="_blank" rel="noopener noreferrer">
+                  Download PDF <i className="ph ph-download-simple"></i>
+                </a>
+              ) : (
+                <span className="btn-download" style={{ opacity: 0.45, cursor: 'default' }}>
+                  Coming Soon <i className="ph ph-clock"></i>
+                </span>
+              )}
            </div>
 
            <div className="resource-card-premium reveal-up">

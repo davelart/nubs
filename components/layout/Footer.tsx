@@ -1,4 +1,36 @@
+'use client';
+
+import { useQuery } from '@tanstack/react-query';
+
+const FALLBACK = {
+  address: 'University of Cape Coast, Ghana',
+  phone: '+233 24 210 9888',
+};
+
+function toWaHref(phone: string) {
+  return `https://wa.me/${phone.replace(/\D/g, '')}`;
+}
+
+function getAcademicYear() {
+  const now = new Date();
+  const y = now.getFullYear();
+  return now.getMonth() < 4 ? `${y - 1}/${y}` : `${y}/${y + 1}`;
+}
+
 export default function Footer() {
+  const academicYear = getAcademicYear();
+
+  const { data: info } = useQuery({
+    queryKey: ['contact-info'],
+    queryFn: async () => {
+      const res = await fetch('/api/contact-info');
+      if (!res.ok) return null;
+      return res.json();
+    },
+  });
+
+  const contact = info ?? FALLBACK;
+
   return (
     <footer className="footer">
       <div className="container footer-grid">
@@ -15,8 +47,8 @@ export default function Footer() {
         <div className="footer-contact">
           <h3>Contact Info</h3>
           <ul>
-            <li><i className="ph ph-map-pin"></i> University of Cape Coast, Ghana</li>
-            <li><a href="https://wa.me/233242109888"><i className="ph ph-phone"></i> +233 24 210 9888</a></li>
+            <li><i className="ph ph-map-pin"></i> {contact.address}</li>
+            <li><a href={toWaHref(contact.phone)}><i className="ph ph-phone"></i> {contact.phone}</a></li>
             <li><a href="mailto:nationalunionofbaptiststudents@gmail.com"><i className="ph ph-envelope"></i> nationalunionofbaptiststudents@gmail.com</a></li>
           </ul>
         </div>
@@ -31,9 +63,11 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="footer-bottom text-center">
-        <p>&copy; 2026/2027 NUBS-GHANA. All Rights Reserved.</p>
-        <a href="/#home">Back to top <i className="ph ph-arrow-up"></i></a>
+      <div className="footer-bottom">
+        <div className="container flex items-center justify-between">
+          <p>&copy; {academicYear} NUBS-GHANA. All Rights Reserved.</p>
+          <a href="/#home">Back to top <i className="ph ph-arrow-up"></i></a>
+        </div>
       </div>
     </footer>
   );

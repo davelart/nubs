@@ -31,6 +31,28 @@ model Media {
   @@map("media")
 }
 
+model ContactInfo {
+  id        Int      @id @default(autoincrement())
+  address   String
+  phone     String
+  email     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("contact_info")
+}
+
+model Document {
+  id         Int      @id @default(autoincrement())
+  type       String   // e.g. "constitution"
+  filename   String
+  url        String
+  key        String   @unique
+  mimeType   String?  @map("mime_type")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  @@map("documents")
+}
+
 model Leadership {
   id           Int      @id @default(autoincrement())
   name         String

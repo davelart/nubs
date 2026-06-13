@@ -1799,7 +1799,7 @@ a.prog-detail-card {
 
 .footer ul li i {
   @apply mr-2;
-  color: var(--color-primary);
+  color: inherit;
 }
 
 .footer-bottom {

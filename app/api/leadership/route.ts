@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
             const currentYear = now.getFullYear();
             const month = now.getMonth();
             assignedAcademicYear =
-                month < 7
+                month < 4
                     ? `${currentYear - 1}/${currentYear}`
                     : `${currentYear}/${currentYear + 1}`;
         }

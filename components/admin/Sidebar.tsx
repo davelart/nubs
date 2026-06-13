@@ -26,6 +26,12 @@ export default function Sidebar() {
         <Link href="/admin/programs" className={`sidebar-nav-item ${pathname === '/admin/programs' ? 'active' : ''}`}>
           <i className="ph ph-calendar-star"></i> Programs
         </Link>
+        <Link href="/admin/constitution" className={`sidebar-nav-item ${pathname === '/admin/constitution' ? 'active' : ''}`}>
+          <i className="ph ph-file-text"></i> Constitution
+        </Link>
+        <Link href="/admin/contact" className={`sidebar-nav-item ${pathname === '/admin/contact' ? 'active' : ''}`}>
+          <i className="ph ph-address-book"></i> Contact Info
+        </Link>
       </nav>
       <div className="sidebar-footer">
         <button
